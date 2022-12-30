@@ -191,7 +191,6 @@ function config-users_() {
 
 #OK
 function config-sudoers_() {
-    permit="sudo"
     printf "\n%%wheel ALL=(ALL:ALL) ALL\n" | ${permit} tee "/etc/sudoers.d/wheel" > /dev/null 2>&1 ;
     printf "\nDefaults insults" | ${permit} tee --append "/etc/sudoers.d/wheel" > /dev/null 2>&1 ;
     printf "\nDefaults timestamp_timeout=10" | ${permit} tee --append "/etc/sudoers.d/wheel" > /dev/null 2>&1 ;
