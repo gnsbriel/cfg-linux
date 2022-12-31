@@ -186,7 +186,10 @@ function config-users_() {
 
     # Change Passwd from "${USER_LOGIN}"
     printf "%bSet Password for %b'%s'%b\n" "${cyan}" "${light_gray}" "${USER_LOGIN}" "${reset}" ;
-    ${permit} passwd "${USER_LOGIN}" ;
+    until ${permit} passwd "${USER_LOGIN}" ;
+    do
+        printf "%bPasswords do not match. Try again..%b\n" "${red}" "${reset}"
+    done
 }
 
 #OK
