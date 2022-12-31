@@ -146,7 +146,7 @@ function config-grub_() {
     # Config Grub
     grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --recheck ;  # Install Grub
     sed --expression 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0.1/g' --in-place /etc/default/grub ;  # "Remove" delay when booting
-    sed --expression 's/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/g' --in-place /etc/default/grub ;  # Enable Probe
+    sed --expression 's/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=true/g' --in-place /etc/default/grub ;  # Enable Probe
     grub-mkconfig --output /boot/grub/grub.cfg ;  # Build grub config file
 }
 
