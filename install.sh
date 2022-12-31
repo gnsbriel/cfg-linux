@@ -432,7 +432,7 @@ function install-dotfiles_() {
 
 #OK
 function setup-Wallpapers_() {
-    wget --continue --directory-prefix "${HOME}"/Media/Wallpapers/ https://i.imgur.com/Ec9A2E4.png ;
+    git clone https://gitlab.com/dwt1/wallpapers.git "${HOME}"/Media/Wallpapers
 }
 
 #OK
