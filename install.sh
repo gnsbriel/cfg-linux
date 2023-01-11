@@ -295,8 +295,8 @@ function check-installed-packages_() {
 
 #OK
 function install-packages_() {
-    if [ ! "${1}" == "--wsl" ] && [ ! "${1}" == "--arch" ]; then
-        printf "\n%bIncorrect use of Function 'install-packages_', choose a argument: '--wsl' or '--arch'%b\n" "${red}" "${reset}" 1>&2 ;
+    if [ ! "${1}" == "--wsl" ] && [ ! "${1}" == "--arch" ] && [ ! "${1}" == "--linux" ]; then
+        printf "\n%bIncorrect use of Function 'install-packages_', choose a argument: '--linux', '--wsl' or '--arch'%b\n" "${red}" "${reset}" 1>&2 ;
         exit 2 ;
     fi
 
@@ -307,6 +307,9 @@ function install-packages_() {
     elif [ "${1}" == "--arch" ]; then
         appmanager="pacman --sync";
         noconfirm="--noconfirm";
+    elif [ "${1}" == "--linux" ]; then
+        appmanager="apt install";
+        noconfirm="--yes";
     fi
 
     printf "\n%bInstalling Packages from '/%s'%b\n" "${yellow}" "${file}" "${reset}" ; sleep 2 ;
@@ -322,7 +325,7 @@ function install-others_() {
     wget --continue --directory-prefix "${PWD}"/Downloads/ https://chromedriver.storage.googleapis.com/LATEST_RELEASE ;
     LATEST_RELEASE=$( cat "${PWD}"/Downloads/LATEST_RELEASE ) ;
     wget --continue --directory-prefix "${PWD}"/Downloads/ https://chromedriver.storage.googleapis.com/"${LATEST_RELEASE}"/chromedriver_linux64.zip ;
-    unzip "${PWD}"/Downloads/'chromedriver_linux64.zip' -d "${HOME}"/.local/.bin/ ;
+    unzip "${PWD}"/Downloads/'chromedriver_linux64.zip' -d "${HOME}"/.local/bin/ ;
 
     # NVM (NodeJS Version Manager)
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash ;
@@ -424,7 +427,7 @@ function install-others-packages_() {
 
 #OK
 function install-config-files_() {
-    if [ ! "${1}" == "--wsl" ] && [ ! "${1}" == "--arch" ]; then
+    if [ ! "${1}" == "--wsl" ] && [ ! "${1}" == "--arch" ] && [ ! "${1}" == "--linux" ] ; then
         printf "\n%bIncorrect use of Function 'install-config-files_', choose a argument: '--wsl' or '--arch'%b\n" "${red}" "${reset}" 1>&2 ;
         exit 2 ;
     fi
@@ -440,6 +443,23 @@ function install-config-files_() {
         elif [ "${CHASSIS}" == "laptop" ]; then
             mv --verbose "${PWD}"/etc/X11/xorg.conf.d/10-monitor.conf "${PWD}"/Ignored/ ;
             mv --verbose "${PWD}"/etc/X11/xorg.conf.d/20-amdgpu.conf "${PWD}"/Ignored/ ;
+        fi
+        sudo cp --recursive --verbose "${PWD}"/etc / ;
+        sudo cp --recursive --verbose "${PWD}"/usr / ;
+    elif [ "${1}" == "--linux" ]; then
+        source "/etc/machine-info" ;
+        mkdir --verbose "${PWD}"/Ignored ;
+        if [ "${CHASSIS}" == "desktop" ]; then
+            mv --verbose "${PWD}"/etc/X11/xorg.conf.d/30-libinput.conf "${PWD}"/Ignored/ ;
+            mv --verbose "${PWD}"/etc/modules-load.d "${PWD}"/Ignored/ ;
+            mv --verbose "${PWD}"/etc/ly "${PWD}"/Ignored/ ;
+            mv --verbose "${PWD}"/etc/pam.d "${PWD}"/Ignored/ ;
+        elif [ "${CHASSIS}" == "laptop" ]; then
+            mv --verbose "${PWD}"/etc/X11/xorg.conf.d/10-monitor.conf "${PWD}"/Ignored/ ;
+            mv --verbose "${PWD}"/etc/X11/xorg.conf.d/20-amdgpu.conf "${PWD}"/Ignored/ ;
+            mv --verbose "${PWD}"/etc/modules-load.d "${PWD}"/Ignored/ ;
+            mv --verbose "${PWD}"/etc/ly "${PWD}"/Ignored/ ;
+            mv --verbose "${PWD}"/etc/pam.d "${PWD}"/Ignored/ ;
         fi
         sudo cp --recursive --verbose "${PWD}"/etc / ;
         sudo cp --recursive --verbose "${PWD}"/usr / ;
@@ -460,21 +480,34 @@ function install-dotfiles_() {
             cd "${HOME}"/.dotfiles || exit 1 ;
             bash install.sh --arch ;
         )
+    elif [ "${1}" == "--linux" ] ; then
+        (
+            cd "${HOME}"/.dotfiles || exit 1 ;
+            bash install.sh --linux ;
+        )
     fi
 }
 
 #OK
 function setup-Wallpapers_() {
-    git clone https://gitlab.com/dwt1/wallpapers.git "${HOME}"/Media/Wallpapers
+    if [ "${1}" == "" ]; then
+        git clone https://gitlab.com/dwt1/wallpapers.git "${HOME}"/Media/Wallpapers
+    elif [ "${1}" == "--linux" ]; then
+        git clone https://gitlab.com/dwt1/wallpapers.git "${HOME}"/Pictures/Wallpapers
+    fi
 }
 
 #OK
 function enable-services_() {
-    sudo systemctl enable ufw.service          ; # Enable firewall Service;
-    sudo systemctl enable ly.service           ; # Enable Ly Service;
-    sudo systemctl disable getty@tty2.service  ; # Disable getty on Ly's tty to prevent "login" from spawning on top of it
-    sudo systemctl enable numlock.service      ; # Enable Numlock Service;
-    sudo ufw enable                            ; # Enable firewall.
+    if [ "${1}" == "" ]; then
+        sudo systemctl enable ufw.service          ; # Enable firewall Service;
+        sudo systemctl enable ly.service           ; # Enable Ly Service;
+        sudo systemctl disable getty@tty2.service  ; # Disable getty on Ly's tty to prevent "login" from spawning on top of it
+        sudo systemctl enable numlock.service      ; # Enable Numlock Service;
+        sudo ufw enable                            ; # Enable firewall.
+    elif [ "${1}" == "--linux" ]; then
+        sudo systemctl enable numlock.service      ; # Enable Numlock Service;
+    fi
 }
 
 #OK
@@ -494,14 +527,22 @@ function install-arch-packages_() {
     install-fonts_ ;
     install-others-packages_ ;
     install-config-files_ --arch ;
-    enable-services_ ;
+    enable-services_ "";
     install-dotfiles_ --arch ;
-    setup-Wallpapers_ ;
+    setup-Wallpapers_ "";
     check-installed-packages_ --arch;
 }
 
 function install-linux-packages_() {
+    install-packages_ --linux ;
+    install-others_ ;
+    install-fonts_ ;
+    install-config-files_ --linux ;
+    install-dotfiles_ --linux ;
+    setup-Wallpapers_ --linux ;
+    enable-services_ --linux ;
     check-installed-packages_ --linux ;
+
 }
 
 #Section: "Parameters"
@@ -527,6 +568,10 @@ elif [ "${sys}" == "--wsl" ] && [ "${operation}" == "--install-packages" ]; then
 elif [ "${sys}" == "--arch" ] && [ "${operation}" == "--install-packages" ]; then
     timer "$(printf "%bWarning: You chose to install packages for Arch Linux..\n%bMake sure you're not in 'arch-chroot'...%b" "${yellow}" "${blue}" "${reset}")" ;
     install-arch-packages_ ; printf "\n%bOperation \"%s\" Completed !%b\n" "${green}" "${operation}" "${reset}" >&1 ; exit 1 ;
+# INSTALL LINUX PACKAGES
+elif [ "${sys}" == "--linux" ] && [ "${operation}" == "--install-packages" ]; then
+    timer "$(printf "%bWarning: You chose to install packages for Linux..\n%bMake sure you're not in 'chroot'...%b" "${yellow}" "${blue}" "${reset}")" ;
+    install-linux-packages_ ; printf "\n%bOperation \"%s\" Completed !%b\n" "${green}" "${operation}" "${reset}" >&1 ; exit 1 ;
 # CHECK IF WSL PACKAGES ARE INSTALLED
 elif [ "${sys}" == "--wsl" ] && [ "${operation}" == "--check-packages" ]; then
     timer "$(printf "%bWarning: You chose to check if packages for wsl are installed..\n%bMake sure you're in a Windows Subsystem for Linux...%b" "${yellow}" "${blue}" "${reset}")" ;
@@ -541,11 +586,14 @@ elif [ "${sys}" == "--arch" ] && [ "${operation}" == "--check-packages" ]; then
     check-installed-packages_ "${sys}" ; printf "\n%bOperation \"%s\" Completed !%b\n" "${green}" "${operation}" "${reset}" >&1 ; exit 1 ;
 else
     printf "%bWARNING: you must choose an argument from the list !%b\n" "${red}" "${reset}" 1>&2 ;
-    printf "\n%b    install.sh -- Shell Script for configuring Arch Linux or WSL.%b\n" "${light_gray}" "${reset}" ;
+    printf "\n%b    install.sh -- Shell Script for configuring Linux, Arch Linux or WSL.%b\n" "${light_gray}" "${reset}" ;
     printf "\n%bSynopsis%b\n" "${light_gray}" "${reset}" ;
     printf "\n%b    ./install.sh { --arch --config-sys } # Config Arch Linux.%b\n" "${light_gray}" "${reset}" ;
     printf "\n%b    ./install.sh { --arch --install-packages } # Install arch linux packages.%b\n" "${light_gray}" "${reset}" ;
     printf "\n%b    ./install.sh { --arch --check-packages } # Check if arch linux packages from the list are installed.%b\n" "${light_gray}" "${reset}" ;
+    printf "\n%b    ./install.sh { --linux --config-sys } # Config Linux.%b\n" "${light_gray}" "${reset}" ;
+    printf "\n%b    ./install.sh { --linux --install-packages } # Install linux packages.%b\n" "${light_gray}" "${reset}" ;
+    printf "\n%b    ./install.sh { --linux --check-packages } # Check if linux packages from the list are installed.%b\n" "${light_gray}" "${reset}" ;
     printf "\n%b    ./install.sh { --wsl --config-sys } # Config wsl.%b\n" "${light_gray}" "${reset}" ;
     printf "\n%b    ./install.sh { --wsl --install-packages } # Install wsl packages.%b\n" "${light_gray}" "${reset}" ;
     printf "\n%b    ./install.sh { --wsl --check-packages } # Check if wsl packages from the list are installed.%b\n" "${light_gray}" "${reset}" ;
