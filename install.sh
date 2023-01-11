@@ -185,12 +185,12 @@ function config-home-dir_() {
         ${permit} mkdir --verbose /etc/skel/Repositories ;
         ${permit} mkdir --verbose /etc/skel/Virtual\ Machine ;
     elif [ "${1}" == "--linux" ]; then
-        ${permit} mkdir --verbose "${HOME}"/Pictures/Screenshots ;
-        ${permit} mkdir --verbose "${HOME}"/Pictures/Wallpapers ;
-        ${permit} mkdir --verbose "${HOME}"/Projects ;
-        ${permit} mkdir --verbose "${HOME}"/Video\ Games ;
-        ${permit} mkdir --verbose "${HOME}"/Repositories ;
-        ${permit} mkdir --verbose "${HOME}"/Virtual\ Machine ;
+        mkdir --verbose "${HOME}"/Pictures/Screenshots ;
+        mkdir --verbose "${HOME}"/Pictures/Wallpapers ;
+        mkdir --verbose "${HOME}"/Projects ;
+        mkdir --verbose "${HOME}"/Video\ Games ;
+        mkdir --verbose "${HOME}"/Repositories ;
+        mkdir --verbose "${HOME}"/Virtual\ Machine ;
     fi
 
 }
