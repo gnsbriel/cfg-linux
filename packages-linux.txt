@@ -1,4 +1,4 @@
-wireless_tools
+wireless-tools
 dialog
 zip
 unzip
@@ -6,12 +6,11 @@ wget
 curl
 xdg-utils
 python3
-python-pip
-python-psutil
-python-setuptools
+python3-pip
+python3-psutil
+python3-setuptools
 firefox
 chromium
-geckodriver
 virtualbox
 piper
 steam
@@ -28,8 +27,6 @@ audacity
 vlc
 gimp
 gdb
-noto-fonts-emoji
-lib32-fontconfig
-ttf-liberation
-wqy-zenhei
+fonts-noto-color-emoji
+fonts-wqy-zenhei
 shellcheck
