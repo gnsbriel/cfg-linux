@@ -266,7 +266,7 @@ function check-installed-packages_() {
 
     # Check if packages from "packages.txt" or "packages-wsl.txt" are installed
     printf "\n%bChecking if Packages from '/%s' are installed... %b\n\n" "${blue}" "${file}" "${reset}" ; sleep 2 ;
-    if [ "${1}" == "--wsl" ] && [ "${1}" == "--linux" ] ; then
+    if [ "${1}" == "--wsl" ] || [ "${1}" == "--linux" ] ; then
         while IFS="" read -r p || [ -n "${p}" ]; do
             if sudo dpkg --list "${p}" > /dev/null 2>&1 ; then
                 printf "%bThe package '%s' is installed%b\n" "${green}" "${p}" "${reset}" ; sleep 0.05 ;
