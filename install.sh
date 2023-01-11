@@ -334,6 +334,16 @@ function install-others_() {
     [ -s "${NVM_DIR}/bash_completion" ] && \. "${NVM_DIR}/bash_completion"  ; # This loads nvm bash_completion;
     nvm install --lts ;
     nvm use --lts ;
+
+    if [ "${1}" == "--linux" ] ;then
+        VERSION=$(curl -s https://api.github.com/repos/mozilla/geckodriver/releases/latest \
+        | grep "tag_name" \
+        | awk '{ print $2 }' \
+        | sed 's/,$//'       \
+        | sed 's/"//g' )     \
+        ; curl -L -o "${PWD}/Downloads/geckodriver-${VERSION}-linux64.tar.gz" "https://github.com/mozilla/geckodriver/releases/download/${VERSION}/geckodriver-${VERSION}-linux64.tar.gz" ;
+        tar -xvzf "${PWD}/Downloads/geckodriver-${VERSION}-linux64.tar.gz" -C "${HOME}"/.local/bin/ ;
+    fi
 }
 
 #OK
@@ -513,7 +523,7 @@ function enable-services_() {
 #OK
 function install-wsl-packages_() {
     install-packages_ --wsl;
-    install-others_ ;
+    install-others_ "" ;
     install-fonts_ ;
     install-config-files_ --wsl ;
     install-dotfiles_ --wsl ;
@@ -523,7 +533,7 @@ function install-wsl-packages_() {
 #OK
 function install-arch-packages_() {
     install-packages_ --arch;
-    install-others_ ;
+    install-others_ "" ;
     install-fonts_ ;
     install-others-packages_ ;
     install-config-files_ --arch ;
@@ -535,7 +545,7 @@ function install-arch-packages_() {
 
 function install-linux-packages_() {
     install-packages_ --linux ;
-    install-others_ ;
+    install-others_ --linux ;
     install-fonts_ ;
     install-config-files_ --linux ;
     install-dotfiles_ --linux ;
