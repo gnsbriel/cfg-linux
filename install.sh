@@ -21,7 +21,7 @@ readonly reset='\033[0m'          # No color, end of sentence;
 #Syntax:
 #    printf "'%b' 'TEXT' '%s' '%b'\n" "${color}" "${var}" "${reset}"
 
-readonly sys="${1}"    # "--wsl" "--arch"
+readonly sys="${1}"        # "--wsl" "--arch"
 readonly operation="${2}"  # "--config-sys" "--check-packages" "--install-packages"
 
 # Sudo
