@@ -29,6 +29,8 @@ if [ "${sys}" == "--wsl" ]; then
     readonly permit="sudo";
 elif [ "${sys}" == "--arch" ]; then
     readonly permit="" ;
+elif [ "${sys}" == "--linux" ]; then
+    readonly permit="sudo" ;
 fi
 
 # Package list
@@ -36,6 +38,8 @@ if [ "${sys}" == "--wsl" ]; then
     readonly file="packages-wsl.txt" ;
 elif [ "${sys}" == "--arch" ]; then
     readonly file="packages-arch.txt" ;
+elif [ "${sys}" == "--linux" ]; then
+    readonly file="packages-linux.txt" ;
 fi
 
 #Section: ----- General Functions -----
@@ -78,7 +82,7 @@ function config-locale_() {
 function config-hostname_() {
     # Configure Hostname
     read -r -p "$(printf "\n%bEnter HOSTNAME: %b" "${cyan}" "${reset}")" SET_HOSTNAME ;
-    printf "%s" "${SET_HOSTNAME}" | tee --append "/etc/hostname" > /dev/null 2>&1 ;
+    printf "%s" "${SET_HOSTNAME}" | ${permit} tee "/etc/hostname" > /dev/null 2>&1 ;
 }
 
 #OK
@@ -100,7 +104,7 @@ function config-pretty-hostname_() {
         printf "\nICON_NAME=%s" "${SET_ICON_NAME}" ;
         printf "\nCHASSIS=%s" "${SET_CHASSIS}" ;
         printf "\nDEPLOYMENT=%s" "${SET_DEPLOYMENT}" ;
-    } | tee "/etc/machine-info" > /dev/null 2>&1 ;
+    } | ${permit} tee "/etc/machine-info" > /dev/null 2>&1 ;
 }
 
 #OK
@@ -109,8 +113,8 @@ function config-hosts_() {
     {
         printf "127.0.0.1     localhost" ;
         printf "\n::1           localhost" ;
-        printf "\n127.0.1.1     %s" "${SET_HOSTNAME}" ;
-    } | tee "/etc/hosts" > /dev/null 2>&1 ;
+        printf "\n127.0.1.1     %s.localdomain     %s" "${SET_HOSTNAME}" "${SET_HOSTNAME}" ;
+    } | ${permit} tee "/etc/hosts" > /dev/null 2>&1 ;
 }
 
 #OK
@@ -120,12 +124,15 @@ function config-keyboard-layout_() {
 
 #OK
 function config-package-manager_() {
-    if [ ! "${1}" == "--wsl" ] && [ ! "${1}" == "--arch" ]; then
-        printf "\n%bIncorrect use of Function 'config-package-manager_', choose a argument: '--wsl' or '--arch'%b\n" "${red}" "${reset}" 1>&2 ;
+    if [ ! "${1}" == "--wsl" ] && [ ! "${1}" == "--arch" ] && [ ! "${1}" == "--linux" ] ; then
+        printf "\n%bIncorrect use of Function 'config-package-manager_', choose a argument: '--linux', '--wsl' or '--arch'%b\n" "${red}" "${reset}" 1>&2 ;
         exit 2 ;
     fi
 
     if [ "${1}" == "--wsl" ]; then
+        sudo apt update --yes ;  # update list of available packages
+        sudo apt upgrade --yes ;  # update installed packages
+    elif [ "${1}" == "--linux" ] ; then
         sudo apt update --yes ;  # update list of available packages
         sudo apt upgrade --yes ;  # update installed packages
     elif [ "${1}" == "--arch" ] ; then
@@ -158,20 +165,34 @@ function config-network_() {
 
 #OK
 function config-home-dir_() {
-    # Home Library
-    ${permit} mkdir --verbose /etc/skel/Desktop ;
-    ${permit} mkdir --verbose /etc/skel/Documents ;
-    ${permit} mkdir --verbose /etc/skel/Downloads ;
-    ${permit} mkdir --verbose /etc/skel/Media ;
-    ${permit} mkdir --verbose /etc/skel/Media/Music ;
-    ${permit} mkdir --verbose /etc/skel/Media/Pictures ;
-    ${permit} mkdir --verbose /etc/skel/Media/Videos ;
-    ${permit} mkdir --verbose /etc/skel/Media/Screenshots ;
-    ${permit} mkdir --verbose /etc/skel/Media/Wallpapers ;
-    ${permit} mkdir --verbose /etc/skel/Projects ;
-    ${permit} mkdir --verbose /etc/skel/Video\ Games ;
-    ${permit} mkdir --verbose /etc/skel/Repositories ;
-    ${permit} mkdir --verbose /etc/skel/Virtual\ Machine ;
+    if [ ! "${1}" == "" ] && [ ! "${1}" == "--linux" ]; then
+        printf "\n%bIncorrect use of Function 'config-home-dir_', choose a argument: 'BLANK' or '--linux'%b\n" "${red}" "${reset}" 1>&2 ;
+        exit 2 ;
+    fi
+
+    if [ "${1}" == "" ]; then
+        ${permit} mkdir --verbose /etc/skel/Desktop ;
+        ${permit} mkdir --verbose /etc/skel/Documents ;
+        ${permit} mkdir --verbose /etc/skel/Downloads ;
+        ${permit} mkdir --verbose /etc/skel/Media ;
+        ${permit} mkdir --verbose /etc/skel/Media/Music ;
+        ${permit} mkdir --verbose /etc/skel/Media/Pictures ;
+        ${permit} mkdir --verbose /etc/skel/Media/Videos ;
+        ${permit} mkdir --verbose /etc/skel/Media/Screenshots ;
+        ${permit} mkdir --verbose /etc/skel/Media/Wallpapers ;
+        ${permit} mkdir --verbose /etc/skel/Projects ;
+        ${permit} mkdir --verbose /etc/skel/Video\ Games ;
+        ${permit} mkdir --verbose /etc/skel/Repositories ;
+        ${permit} mkdir --verbose /etc/skel/Virtual\ Machine ;
+    elif [ "${1}" == "--linux" ]; then
+        ${permit} mkdir --verbose "${HOME}"/Pictures/Screenshots ;
+        ${permit} mkdir --verbose "${HOME}"/Pictures/Wallpapers ;
+        ${permit} mkdir --verbose "${HOME}"/Projects ;
+        ${permit} mkdir --verbose "${HOME}"/Video\ Games ;
+        ${permit} mkdir --verbose "${HOME}"/Repositories ;
+        ${permit} mkdir --verbose "${HOME}"/Virtual\ Machine ;
+    fi
+
 }
 
 #OK
@@ -203,7 +224,7 @@ function config-sudoers_() {
 #OK
 function config-wsl-sys_() {
     config-package-manager_ --wsl ;
-    config-home-dir_ ;
+    config-home-dir_ "" ;
     config-users_ ;
     config-sudoers_ ;
 }
@@ -220,8 +241,17 @@ function config-arch-sys_() {
     config-package-manager_ --arch;
     config-grub_ ;
     config-network_ ;
-    config-home-dir_ ;
+    config-home-dir_ "" ;
     config-users_ ;
+    config-sudoers_ ;
+}
+
+function config-linux-sys_() {
+    config-hostname_ ;
+    config-pretty-hostname_ ;
+    config-hosts_ ;
+    config-package-manager_ --linux;
+    config-home-dir_ --linux;
     config-sudoers_ ;
 }
 
@@ -229,14 +259,14 @@ function config-arch-sys_() {
 
 #OK
 function check-installed-packages_() {
-    if [ ! "${1}" == "--wsl" ] && [ ! "${1}" == "--arch" ]; then
-        printf "\n%bIncorrect use of Function 'check-installed-packages_', choose a argument: '--wsl' or '--arch'%b\n" "${red}" "${reset}" 1>&2 ;
+    if [ ! "${1}" == "--wsl" ] && [ ! "${1}" == "--arch" ] && [ ! "${1}" == "--linux" ] ; then
+        printf "\n%bIncorrect use of Function 'check-installed-packages_', choose a argument: '--linux', '--wsl' or '--arch'%b\n" "${red}" "${reset}" 1>&2 ;
         exit 2 ;
     fi
 
     # Check if packages from "packages.txt" or "packages-wsl.txt" are installed
     printf "\n%bChecking if Packages from '/%s' are installed... %b\n\n" "${blue}" "${file}" "${reset}" ; sleep 2 ;
-    if [ "${1}" == "--wsl" ]; then
+    if [ "${1}" == "--wsl" ] && [ "${1}" == "--linux" ] ; then
         while IFS="" read -r p || [ -n "${p}" ]; do
             if sudo dpkg --list "${p}" > /dev/null 2>&1 ; then
                 printf "%bThe package '%s' is installed%b\n" "${green}" "${p}" "${reset}" ; sleep 0.05 ;
@@ -466,73 +496,29 @@ function install-arch-packages_() {
     install-config-files_ --arch ;
     enable-services_ ;
     install-dotfiles_ --arch ;
-    setup-Wallpapers_
+    setup-Wallpapers_ ;
     check-installed-packages_ --arch;
 }
 
-#Section: "selection_"
-
-#OK
-function selection_() {
-    clear ;
-    printf "\n%b[1]%b: Configure arch linux..\n" "${yellow}" "${reset}" ;
-    printf "%b[2]%b: Install packages for arch linux..\n" "${yellow}" "${reset}" ;
-    printf "%b[3]%b: Check if packages for arch linux are installed..\n" "${yellow}" "${reset}" ;
-    printf "%b[4]%b: Configure wsl..\n" "${yellow}" "${reset}" ;
-    printf "%b[5]%b: Install packages for wsl..\n" "${yellow}" "${reset}" ;
-    printf "%b[6]%b: Check if packages for wsl are installed..\n" "${yellow}" "${reset}" ;
-    printf "%b[7]%b: Quit\n" "${yellow}" "${reset}" ;
-    while true; do
-        read -r -p "$(printf "\n%binstall.sh - Choose an option:%b " "${cyan}" "${yellow}")" option ; printf "%b" "${reset}" ;
-        case "${option}" in
-            [1]* )
-                # CONFIG ARCH SYS
-                timer "$(printf "%bWarning: You chose to configure Arch Linux..\n%bMake sure you're in 'arch-chroot'...%b" "${yellow}" "${blue}" "${reset}")" ;\
-                config-arch-sys_ ; printf "\n%bOperation \"--config-sys\" Completed !%b\n" "${green}" "${reset}" >&1 ; exit 1 ;;
-            [2]* )
-                # INSTALL ARCH PACKAGES
-                timer "$(printf "%bWarning: You chose to install packages for Arch Linux..\n%bMake sure you're not in 'arch-chroot'...%b" "${yellow}" "${blue}" "${reset}")" ;
-                install-arch-packages_ ; printf "\n%bOperation \"--install-packages\" Completed !%b\n" "${green}" "${reset}" >&1 ; exit 1 ;;
-            [3]* )
-                # CHECK IF ARCH PACKAGES ARE INSTALLED
-                timer "$(printf "%bWarning: You chose to check if packages for arch linux are installed..\n%bMake sure you're not in 'arch-chroot'...%b" "${yellow}" "${blue}" "${reset}")" ;
-                check-installed-packages_ "--arch" ; printf "\n%bOperation \"--check-packages\" Completed !%b\n" "${green}" "${reset}" >&1 ; exit 1 ;;
-            [4]* )
-                # CONFIG WSL SYS
-                permit="sudo";
-                timer "$(printf "%bWarning: You chose to configure WSL..\n%bMake sure you're in a Windows Subsystem for Linux...%b" "${yellow}" "${blue}" "${reset}")" ;
-                config-wsl-sys_ ; printf "\n%bOperation \"--config-sys\" Completed !%b\n" "${green}" "${reset}" >&1 ; exit 1 ;;
-            [5]* )
-                # INSTALL WSL PACKAGES
-                permit="sudo";
-                timer "$(printf "%bWarning: You chose to install packages for WSL..\n%bMake sure you're in a Windows Subsystem for Linux...%b" "${yellow}" "${blue}" "${reset}")" ;
-                install-wsl-packages_ ; printf "\n%bOperation \"--install-packages\" Completed !%b\n" "${green}" "${reset}" >&1 ; exit 1 ;;
-            [6]* )
-                # CHECK IF WSL PACKAGES ARE INSTALLED
-                permit="sudo";
-                timer "$(printf "%bWarning: You chose to check if packages for wsl are installed..\n%bMake sure you're in a Windows Subsystem for Linux...%b" "${yellow}" "${blue}" "${reset}")" ;
-                check-installed-packages_ "--wsl" ; printf "\n%bOperation \"--check-packages\" Completed !%b\n" "${green}" "${reset}" >&1 ; exit 1 ;;
-            [7Qq]* )
-                clear ; printf "\n%bQuit%b\n" "${green}" "${reset}" >&1 ; sleep 1; exit 1 ;;
-            * ) selection_ ; break ;;
-        esac
-    done
+function install-linux-packages_() {
+    check-installed-packages_ --linux ;
 }
 
 #Section: "Parameters"
 
 #OK
-# Use Selection Menu
-if [ "${sys}" == "" ] && [ "${operation}" == "" ]; then
-    selection_ ;
 # CONFIG WSL SYS
-elif [ "${sys}" == "--wsl" ] && [ "${operation}" == "--config-sys" ]; then
+if [ "${sys}" == "--wsl" ] && [ "${operation}" == "--config-sys" ]; then
     timer "$(printf "%bWarning: You chose to configure WSL..\n%bMake sure you're in a Windows Subsystem for Linux...%b" "${yellow}" "${blue}" "${reset}")" ;
     config-wsl-sys_ ; printf "\n%bOperation \"%s\" Completed !%b\n" "${green}" "${operation}" "${reset}" >&1 ; exit 1 ;
 # CONFIG ARCH SYS
 elif [ "${sys}" == "--arch" ] && [ "${operation}" == "--config-sys" ]; then
     timer "$(printf "%bWarning: You chose to configure Arch Linux..\n%bMake sure you're in 'arch-chroot'...%b" "${yellow}" "${blue}" "${reset}")" ;\
     config-arch-sys_ ; printf "\n%bOperation \"%s\" Completed !%b\n" "${green}" "${operation}" "${reset}" >&1 ; exit 1 ;
+# CONFIG LINUX
+elif [ "${sys}" == "--linux" ] && [ "${operation}" == "--config-sys" ]; then
+    timer "$(printf "%bWarning: You chose to configure Linux..\n%bMake sure you're not in 'chroot'...%b" "${yellow}" "${blue}" "${reset}")" ;\
+    config-linux-sys_ ; printf "\n%bOperation \"%s\" Completed !%b\n" "${green}" "${operation}" "${reset}" >&1 ; exit 1 ;
 # INSTALL WSL PACKAGES
 elif [ "${sys}" == "--wsl" ] && [ "${operation}" == "--install-packages" ]; then
     timer "$(printf "%bWarning: You chose to install packages for WSL..\n%bMake sure you're in a Windows Subsystem for Linux...%b" "${yellow}" "${blue}" "${reset}")" ;
@@ -544,6 +530,10 @@ elif [ "${sys}" == "--arch" ] && [ "${operation}" == "--install-packages" ]; the
 # CHECK IF WSL PACKAGES ARE INSTALLED
 elif [ "${sys}" == "--wsl" ] && [ "${operation}" == "--check-packages" ]; then
     timer "$(printf "%bWarning: You chose to check if packages for wsl are installed..\n%bMake sure you're in a Windows Subsystem for Linux...%b" "${yellow}" "${blue}" "${reset}")" ;
+    check-installed-packages_ "${sys}" ; printf "\n%bOperation \"%s\" Completed !%b\n" "${green}" "${operation}" "${reset}" >&1 ; exit 1 ;
+# CHECK IF LINUX PACKAGES ARE INSTALLED
+elif [ "${sys}" == "--linux" ] && [ "${operation}" == "--check-packages" ]; then
+    timer "$(printf "%bWarning: You chose to check if packages for linux are installed..\n%bMake sure you're not in a 'chroot'...%b" "${yellow}" "${blue}" "${reset}")" ;
     check-installed-packages_ "${sys}" ; printf "\n%bOperation \"%s\" Completed !%b\n" "${green}" "${operation}" "${reset}" >&1 ; exit 1 ;
 # CHECK IF ARCH PACKAGES ARE INSTALLED
 elif [ "${sys}" == "--arch" ] && [ "${operation}" == "--check-packages" ]; then
